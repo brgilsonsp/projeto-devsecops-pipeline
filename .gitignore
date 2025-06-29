@@ -1,0 +1,30 @@
+# Maven
+/app/target/
+/app/.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+/.idea/
+/*.iml
+*.sw?
+/.vscode/
+/*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.swp
+*~
+
+# Arquivos de ambiente
+.env
+.env.*
+
+# Devcontainer
+/.devcontainer/.envrc
+/.devcontainer/.venv
+
+# Outros

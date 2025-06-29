@@ -1,0 +1,16 @@
+{
+	"name": "DevSecOps Pipeline",
+	"image": "openjdk:21-jdk",
+	"workspaceFolder": "/workspaces/projeto-devsecops-pipeline/app",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"redhat.java"
+			]
+		}
+	},
+	"forwardPorts": [8080],
+	"postCreateCommand": "./mvnw spring-boot:run"
+}
+

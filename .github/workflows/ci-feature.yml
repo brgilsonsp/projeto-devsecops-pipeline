@@ -1,0 +1,68 @@
+name: CI for Feature Branches
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check if branch is behind develop or main
+        run: |
+          git fetch origin develop
+          git fetch origin main
+          if [ $(git rev-list --count HEAD ^origin/develop) -ne 0 ]; then
+            echo "Branch is behind develop. Please update your branch."
+            exit 1
+          fi
+          if [ $(git rev-list --count HEAD ^origin/main) -ne 0 ]; then
+            echo "Branch is behind main. Please update your branch."
+            exit 1
+          fi
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run lint checks
+        working-directory: ./app
+        run: mvn lint
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run unit tests
+        working-directory: ./app
+        run: mvn test
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run security scans
+        working-directory: ./app
+        run: |
+          ./gradlew dependencyCheckAnalyze
+          gitleaks --path=. --config=security/gitleaks.toml --verbose
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build application
+        working-directory: ./app
+        run: mvn package
