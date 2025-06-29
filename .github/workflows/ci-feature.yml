@@ -32,6 +32,8 @@ jobs:
           git fetch origin main
           behind_develop=$(git rev-list --left-only --count origin/develop...HEAD)
           behind_main=$(git rev-list --left-only --count origin/main...HEAD)
+          branch_actual=$(git rev-parse --abbrev-ref HEAD)
+          echo "Current branch: $branch_actual"
           echo "Behind develop: $behind_develop"
           echo "Behind main: $behind_main"
           if [ "$behind_develop" -gt 0 ]; then
