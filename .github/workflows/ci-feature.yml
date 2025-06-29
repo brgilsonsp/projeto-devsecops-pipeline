@@ -16,8 +16,8 @@ jobs:
         run: |
           git fetch origin develop
           git fetch origin main
-          behind_develop=$(git rev-list --left-only --count HEAD...origin/develop)
-          behind_main=$(git rev-list --left-only --count HEAD...origin/main)
+          behind_develop=$(git rev-list --right-only --count HEAD...origin/develop)
+          behind_main=$(git rev-list --right-only --count HEAD...origin/main)
           if [ "$behind_develop" -gt 0 ]; then
             echo "Branch is behind develop. Please update your branch."
             exit 1
