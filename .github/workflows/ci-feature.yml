@@ -28,6 +28,7 @@ jobs:
 
       - name: Check if branch is behind develop or main
         run: |
+          git fetch --all --prune
           git fetch origin develop
           git fetch origin main
           behind_develop=$(git rev-list --left-only --count origin/develop...HEAD)
