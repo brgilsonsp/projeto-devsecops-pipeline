@@ -10,12 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check if branch is behind develop or main
         run: |
           git fetch --all --prune
-          git remote update
           git fetch origin develop
           git fetch origin main
           behind_develop=$(git rev-list --left-only --count origin/develop...HEAD)
@@ -47,7 +48,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-              
+
       - name: Run lint checks
         working-directory: ./app
         run: mvn checkstyle:check
