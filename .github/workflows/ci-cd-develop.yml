@@ -16,7 +16,7 @@ jobs:
       - name: Check if develop is behind main
         run: |
           git fetch origin main
-          behind_main=$(git rev-list --right-only --count HEAD...origin/main)
+          behind_main=$(git rev-list --left-only --count HEAD...origin/main)
           if [ "$behind_main" -gt 0 ]; then
             echo "Branch is behind main. Please update your branch."
             exit 1
