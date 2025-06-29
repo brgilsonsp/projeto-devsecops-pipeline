@@ -16,14 +16,17 @@ jobs:
         run: |
           git fetch origin develop
           git fetch origin main
-          if [ $(git rev-list --count HEAD ^origin/develop) -ne 0 ]; then
+          behind_develop=$(git rev-list --left-only --count HEAD...origin/develop)
+          behind_main=$(git rev-list --left-only --count HEAD...origin/main)
+          if [ "$behind_develop" -gt 0 ]; then
             echo "Branch is behind develop. Please update your branch."
             exit 1
           fi
-          if [ $(git rev-list --count HEAD ^origin/main) -ne 0 ]; then
+          if [ "$behind_main" -gt 0 ]; then
             echo "Branch is behind main. Please update your branch."
             exit 1
           fi
+          echo "Branch is up to date with develop and main."
 
   lint:
     runs-on: ubuntu-latest
