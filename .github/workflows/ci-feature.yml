@@ -21,16 +21,12 @@ jobs:
           git fetch origin main
           behind_develop=$(git rev-list --left-only --count origin/develop...HEAD)
           behind_main=$(git rev-list --left-only --count origin/main...HEAD)
-          branch_actual=$(git rev-parse --abbrev-ref HEAD)
-          echo "Current branch: $branch_actual"
-          echo "Behind develop: $behind_develop"
-          echo "Behind main: $behind_main"
           if [ "$behind_develop" -gt 0 ]; then
-            echo "Branch is behind develop. Please update your branch."
+            echo "Branch is behind develop. Please update your branch.. Total commits behind develop: $behind_develop"
             exit 1
           fi
           if [ "$behind_main" -gt 0 ]; then
-            echo "Branch is behind main. Please update your branch."
+            echo "Branch is behind main. Please update your branch.. Total commits behind main: $behind_main"
             exit 1
           fi
           echo "Branch is up to date with develop and main."
@@ -49,10 +45,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Run lint checks
-        working-directory: ./app
-        run: mvn checkstyle:check
-
       - name: Run unit tests
         working-directory: ./app
         run: mvn test
@@ -66,3 +58,7 @@ jobs:
       - name: Build application
         working-directory: ./app
         run: mvn package
+
+      - name: Run lint checks
+        working-directory: ./app
+        run: mvn checkstyle:check
