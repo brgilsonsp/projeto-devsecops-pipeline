@@ -12,23 +12,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - name: Check if branch is behind develop or main
         run: |
           git fetch --all --prune
+          git remote update
           git fetch origin develop
           git fetch origin main
           behind_develop=$(git rev-list --left-only --count origin/develop...HEAD)
@@ -47,6 +34,20 @@ jobs:
           fi
           echo "Branch is up to date with develop and main."
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+              
       - name: Run lint checks
         working-directory: ./app
         run: mvn checkstyle:check
