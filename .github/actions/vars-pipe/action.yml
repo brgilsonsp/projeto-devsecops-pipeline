@@ -1,0 +1,8 @@
+name: "Set pipelines variables"
+description: "Define variables for pipeline"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        echo "BYPASS_LINT=false" >> $GITHUB_ENV
+      shell: bash

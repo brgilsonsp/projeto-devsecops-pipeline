@@ -14,6 +14,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set pipelines variables
+        uses: ./.github/actions/vars-pipe
+
       - name: Check if branch is behind develop or main
         run: |
           git fetch --all --prune
@@ -45,10 +48,40 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Run lint checks
+        working-directory: ./app
+        run: |
+          set +e
+          mvn checkstyle:check
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Lint errors found."
+            if [ "${BYPASS_LINT}" = "true" ]; then
+              echo "Bypass lint is enabled. Continuing pipeline despite lint errors."
+              exit 0
+            else
+              echo "Pipeline interrupted due to lint errors."
+              exit 1
+            fi
+          fi
+        env:
+          BYPASS_LINT: ${{ env.BYPASS_LINT }}
+
       - name: Run unit tests
         working-directory: ./app
         run: mvn test
 
+      - name: Cache OWASP Dependency-Check data
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ runner.os }}-owasp-dc-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-owasp-dc-
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+      
       - name: Run security scans
         working-directory: ./app
         run: |
@@ -59,6 +92,4 @@ jobs:
         working-directory: ./app
         run: mvn package
 
-      - name: Run lint checks
-        working-directory: ./app
-        run: mvn checkstyle:check
+      
