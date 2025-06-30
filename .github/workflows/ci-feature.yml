@@ -67,14 +67,6 @@ jobs:
         env:
           BYPASS_LINT: ${{ env.BYPASS_LINT }}
       
-      - name: Cache OWASP Dependency-Check data
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: ${{ runner.os }}-owasp-dc-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-owasp-dc-
-      
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
@@ -93,4 +85,24 @@ jobs:
         working-directory: ./app
         run: mvn package
 
-      
+      - name: Get commit messages
+        id: commits
+        run: |
+          git fetch origin develop
+          COMMITS=$(git log --pretty=format:"* %s" origin/develop..${{ github.ref_name }})
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Pull Request to develop
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: develop
+          branch: ${{ github.ref_name }}
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          title: "PR develop << ${{ github.ref_name }}"
+          body: ${{ env.COMMITS }}
+          labels: |
+            'feature'
+            'automated pr'
