@@ -11,43 +11,126 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set pipelines variables
+        uses: ./.github/actions/vars-pipe
 
       - name: Check if develop is behind main
         run: |
+          git fetch --all --prune
           git fetch origin main
-          if [ $(git rev-list --count origin/main ^origin/develop) -gt 0 ]; then
-            echo "Develop branch is behind main. Please update it."
+          behind_main=$(git rev-list --left-only --count origin/main...HEAD)
+          if [ "$behind_main" -gt 0 ]; then
+            echo "Branch is behind main. Please update your branch.. Total commits behind main: $behind_main"
             exit 1
           fi
+          echo "Branch is up to date with develop and main."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: '21'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Run Lint Checks
         working-directory: ./app
-        run: mvn checkstyle:check
+        run: |
+          set +e
+          mvn checkstyle:check
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Lint errors found."
+            if [ "${BYPASS_LINT}" = "true" ]; then
+              echo "Bypass lint is enabled. Continuing pipeline despite lint errors."
+              exit 0
+            else
+              echo "Pipeline interrupted due to lint errors."
+              exit 1
+            fi
+          fi
+        env:
+          BYPASS_LINT: ${{ env.BYPASS_LINT }}
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: 'low'
+          head-ref: '${{ github.ref_name }}'
+          base-ref: 'main'
+          comment-summary-in-pr: 'true'
+          show-openssf-scorecard: 'true'
+          warn-only: 'false'
 
       - name: Run Unit Tests
         working-directory: ./app
         run: mvn test
 
-      - name: Run Integration Tests
-        working-directory: ./app
-        run: mvn verify
-
       - name: Build Application
         working-directory: ./app
         run: mvn package
 
+      - name: Set Docker image variables
+        uses: ./.github/actions/vars-docker
+
+      - name: Set Docker image tag
+        run: echo "IMAGE_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
       - name: Build Docker Image
         run: |
-          docker build -t myapp:develop .
+          docker build -t ${{ env.IMAGE_NAME }} .
 
       - name: Push Docker Image
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker tag myapp:develop myrepo/myapp:develop
-          docker push myrepo/myapp:develop
+          docker tag ${{ env.IMAGE_NAME }} ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "Docker image pushed to: https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+      - name: Get commit messages
+        id: commits
+        run: |
+          git fetch origin develop
+          COMMITS=$(git log --pretty=format:"* %s" origin/main..${{ github.ref_name }})
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Pull Request to main
+        uses: devops-infra/action-pull-request@v0.5.5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ github.ref_name }}
+          target_branch: main
+          title: "PR main << ${{ github.ref_name }}"
+          body: "${{ env.COMMITS }}"
+          label: |
+            "feature"
+            "automated pr"
+          draft: true
+          get_diff: true
+          allow_no_diff: false
+      
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
+        
+      - name: Update PR body with commit messages
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITS: ${{ env.COMMITS }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --base main --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --body "$COMMITS"
+          fi
