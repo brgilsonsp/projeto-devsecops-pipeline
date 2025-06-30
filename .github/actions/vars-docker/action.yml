@@ -4,6 +4,6 @@ runs:
   using: "composite"
   steps:
     - run: |
-        echo "DOCKER_USER=brgilsonsp" >> $GITHUB_ENV
+        echo "DOCKER_ACCOUNT=brgilsonsp" >> $GITHUB_ENV
         echo "IMAGE_NAME=projeto-devsecops-pipeline" >> $GITHUB_ENV
       shell: bash
