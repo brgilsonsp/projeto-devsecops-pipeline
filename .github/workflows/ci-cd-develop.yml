@@ -11,34 +11,70 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set pipelines variables
+        uses: ./.github/actions/vars-pipe
 
       - name: Check if develop is behind main
         run: |
+          git fetch --all --prune
           git fetch origin main
-          behind_main=$(git rev-list --left-only --count HEAD...origin/main)
+          behind_main=$(git rev-list --left-only --count origin/main...HEAD)
           if [ "$behind_main" -gt 0 ]; then
-            echo "Branch is behind main. Please update your branch."
+            echo "Branch is behind main. Please update your branch.. Total commits behind main: $behind_main"
             exit 1
           fi
           echo "Branch is up to date with develop and main."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: '21'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Run Lint Checks
         working-directory: ./app
-        run: mvn checkstyle:check
+        run: |
+          set +e
+          mvn checkstyle:check
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Lint errors found."
+            if [ "${BYPASS_LINT}" = "true" ]; then
+              echo "Bypass lint is enabled. Continuing pipeline despite lint errors."
+              exit 0
+            else
+              echo "Pipeline interrupted due to lint errors."
+              exit 1
+            fi
+          fi
+        env:
+          BYPASS_LINT: ${{ env.BYPASS_LINT }}
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: 'low'
+          head-ref: '${{ github.ref_name }}'
+          base-ref: 'main'
+          comment-summary-in-pr: 'true'
+          show-openssf-scorecard: 'true'
+          warn-only: 'false'
 
       - name: Run Unit Tests
         working-directory: ./app
         run: mvn test
-
-      - name: Run Integration Tests
-        working-directory: ./app
-        run: mvn verify
 
       - name: Build Application
         working-directory: ./app

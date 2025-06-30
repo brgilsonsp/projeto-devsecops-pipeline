@@ -95,14 +95,30 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Create Pull Request to develop
-        uses: peter-evans/create-pull-request@v7
+        uses: devops-infra/action-pull-request@v0.5.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: develop
-          base: ${{ github.ref_name }}
-          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ github.ref_name }}
+          target_branch: develop
           title: "PR develop << ${{ github.ref_name }}"
-          body: ${{ env.COMMITS }}
-          labels: |
-            'feature'
-            'automated pr'
+          body: "${{ env.COMMITS }}"
+          label: |
+            "feature"
+            "automated pr"
+          draft: true
+          get_diff: true
+          allow_no_diff: false
+      
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
+        
+      - name: Update PR body with commit messages
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITS: ${{ env.COMMITS }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --base develop --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --body "$COMMITS"
+          fi
