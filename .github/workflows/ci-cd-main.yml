@@ -11,17 +11,53 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set pipelines variables
+        uses: ./.github/actions/vars-pipe
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: '21'
-          distribution: 'adopt'
 
-      - name: Build with Maven
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Run Lint Checks
         working-directory: ./app
-        run: mvn clean package --file pom.xml
+        run: |
+          set +e
+          mvn checkstyle:check
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Lint errors found."
+            if [ "${BYPASS_LINT}" = "true" ]; then
+              echo "Bypass lint is enabled. Continuing pipeline despite lint errors."
+              exit 0
+            else
+              echo "Pipeline interrupted due to lint errors."
+              exit 1
+            fi
+          fi
+        env:
+          BYPASS_LINT: ${{ env.BYPASS_LINT }}
+
+      - name: Run Unit Tests
+        working-directory: ./app
+        run: mvn test
+
+      - name: Build Application
+        working-directory: ./app
+        run: mvn package
 
       - name: Set Docker image variables
         uses: ./.github/actions/vars-docker
