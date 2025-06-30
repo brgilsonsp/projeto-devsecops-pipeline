@@ -95,14 +95,16 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Create Pull Request to develop
-        uses: peter-evans/create-pull-request@v7
+        uses: devops-infra/action-pull-request@v0.5.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: develop
-          #branch: ${{ github.ref_name }}
-          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ github.ref_name }}
+          target_branch: develop
           title: "PR develop << ${{ github.ref_name }}"
-          body: ${{ env.COMMITS }}
-          labels: |
-            'feature'
-            'automated pr'
+          body: "${{ env.COMMITS }}"
+          label: |
+            "feature"
+            "automated pr"
+          draft: true
+          get_diff: true
+          allow_no_diff: false
