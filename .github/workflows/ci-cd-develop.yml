@@ -95,3 +95,42 @@ jobs:
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           docker tag ${{ env.IMAGE_NAME }} ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "Docker image pushed to: https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+      - name: Get commit messages
+        id: commits
+        run: |
+          git fetch origin develop
+          COMMITS=$(git log --pretty=format:"* %s" origin/develop..${{ github.ref_name }})
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Pull Request to main
+        uses: devops-infra/action-pull-request@v0.5.5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ github.ref_name }}
+          target_branch: main
+          title: "PR main << ${{ github.ref_name }}"
+          body: "${{ env.COMMITS }}"
+          label: |
+            "feature"
+            "automated pr"
+          draft: true
+          get_diff: true
+          allow_no_diff: false
+      
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
+        
+      - name: Update PR body with commit messages
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITS: ${{ env.COMMITS }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --base main --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --body "$COMMITS"
+          fi
