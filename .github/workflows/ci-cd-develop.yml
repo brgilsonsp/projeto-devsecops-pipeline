@@ -101,7 +101,7 @@ jobs:
         id: commits
         run: |
           git fetch origin develop
-          COMMITS=$(git log --pretty=format:"* %s" origin/develop..${{ github.ref_name }})
+          COMMITS=$(git log --pretty=format:"* %s" origin/main..${{ github.ref_name }})
           echo "COMMITS<<EOF" >> $GITHUB_ENV
           echo "$COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
