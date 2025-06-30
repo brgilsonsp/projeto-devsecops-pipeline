@@ -6,4 +6,5 @@ runs:
     - run: |
         echo "DOCKER_ACCOUNT=brgilsonsp" >> $GITHUB_ENV
         echo "IMAGE_NAME=projeto-devsecops-pipeline" >> $GITHUB_ENV
+        echo "URL_DOCKER_HUB_REPO=https://hub.docker.com/repositories/" >> $GITHUB_ENV
       shell: bash
