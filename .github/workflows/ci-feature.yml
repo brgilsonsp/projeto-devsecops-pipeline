@@ -99,7 +99,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: develop
-          branch: ${{ github.ref_name }}
+          #branch: ${{ github.ref_name }}
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           title: "PR develop << ${{ github.ref_name }}"
           body: ${{ env.COMMITS }}
