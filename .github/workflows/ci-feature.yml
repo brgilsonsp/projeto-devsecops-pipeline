@@ -83,8 +83,8 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: 'high'
-          base-ref: 'develop'
           head-ref: '${{ github.head_ref }}'
+          base-ref: 'develop'
           comment-summary-in-pr: 'true'
           show-openssf-scorecard: 'true'
           warn-only: 'true'
