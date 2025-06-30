@@ -101,7 +101,7 @@ jobs:
           source_branch: ${{ github.ref_name }}
           target_branch: develop
           title: "PR develop << ${{ github.ref_name }}"
-          body: "${{ env.COMMITS }}"
+          #body: "${{ env.COMMITS }}"
           label: |
             "feature"
             "automated pr"
