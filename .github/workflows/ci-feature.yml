@@ -98,8 +98,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: develop
-          base: ${{ github.ref_name }}
+          base: develop
+          branch: ${{ github.ref_name }}
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           title: "PR develop << ${{ github.ref_name }}"
           body: ${{ env.COMMITS }}
