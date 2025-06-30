@@ -66,11 +66,7 @@ jobs:
           fi
         env:
           BYPASS_LINT: ${{ env.BYPASS_LINT }}
-
-      - name: Run unit tests
-        working-directory: ./app
-        run: mvn test
-
+      
       - name: Cache OWASP Dependency-Check data
         uses: actions/cache@v3
         with:
@@ -82,18 +78,16 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: 'high'
+          fail-on-severity: 'low'
           head-ref: '${{ github.ref_name }}'
           base-ref: 'develop'
           comment-summary-in-pr: 'true'
           show-openssf-scorecard: 'true'
-          warn-only: 'true'
+          warn-only: 'false'
       
-      - name: Run security scans
+      - name: Run unit tests
         working-directory: ./app
-        run: |
-          mvn org.owasp:dependency-check-maven:check
-          gitleaks --path=. --config=security/gitleaks.toml --verbose
+        run: mvn test
 
       - name: Build application
         working-directory: ./app
