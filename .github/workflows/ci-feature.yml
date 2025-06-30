@@ -101,10 +101,24 @@ jobs:
           source_branch: ${{ github.ref_name }}
           target_branch: develop
           title: "PR develop << ${{ github.ref_name }}"
-          #body: "${{ env.COMMITS }}"
+          body: "${{ env.COMMITS }}"
           label: |
             "feature"
             "automated pr"
           draft: true
           get_diff: true
           allow_no_diff: false
+      
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
+        
+      - name: Update PR body with commit messages
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITS: ${{ env.COMMITS }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --base develop --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --body "$COMMITS"
+          fi
