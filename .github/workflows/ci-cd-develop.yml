@@ -123,9 +123,7 @@ jobs:
           target_branch: main
           title: "PR main << ${{ github.ref_name }}"
           body: "${{ env.COMMITS }}"
-          label: |
-            "feature"
-            "automated pr"
+          label: "feature, automated_pr, release"
           draft: true
           get_diff: true
           allow_no_diff: false
